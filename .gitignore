@@ -218,3 +218,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+.env
+*.pem
+logs/*.log
+data/raw/*
+data/processed/*
+!data/**/.gitkeep
+venv/
+.venv/
