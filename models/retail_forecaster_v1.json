@@ -1,0 +1,31 @@
+{
+  "version": "v1",
+  "trained_at": "2026-11-13T11:07:46+00:00",
+  "model": "RandomForestRegressor",
+  "params": {
+    "n_estimators": 100,
+    "max_depth": 12,
+    "min_samples_leaf": 20,
+    "max_samples": 0.5
+  },
+  "features": [
+    "lag_1",
+    "lag_7",
+    "lag_14",
+    "lag_28",
+    "ma_7",
+    "ma_14",
+    "is_weekend",
+    "dow",
+    "month",
+    "store_num",
+    "product_num"
+  ],
+  "trained_on": "2013-01-29 to 2017-12-31",
+  "test_metrics_from_evaluation_fit": {
+    "model": "random forest",
+    "MAE": 6.71,
+    "MAPE_%": 12.67,
+    "WAPE_%": 10.64
+  }
+}

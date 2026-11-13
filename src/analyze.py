@@ -2,6 +2,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+
 from train import FEATURES, TARGET, build_forest, build_linear, load_splits
 
 
@@ -29,6 +30,7 @@ def main():
 
     # 2. Bias by month: negative = under-predicting, positive = over-predicting
     month = val["date"].dt.month
+    
     print("Average error (prediction - actual) per row, by month")
     print(val.groupby(month)[["err_linear", "err_forest"]].mean().round(2))
 
