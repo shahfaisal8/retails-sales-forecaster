@@ -1,0 +1,5 @@
+model,MAE,MAPE_%,WAPE_%
+naive (lag_1),10.74,23.32,19.63
+seasonal naive (lag_7),8.59,18.85,15.71
+linear regression,6.44,14.3,11.77
+random forest,6.18,13.7,11.29
