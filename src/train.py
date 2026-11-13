@@ -40,11 +40,11 @@ def build_linear():
     return Pipeline([("prep", prep), ("model", LinearRegression())])
 
 
-def build_forest():
-    forest = RandomForestRegressor(
-        n_estimators=100, max_depth=16, min_samples_leaf=5, n_jobs=-1, random_state=42
-    )
-    return Pipeline([("model", forest)])
+def build_forest(**overrride):
+    params = dict(n_estimators=100,max_depth=16,min_samples_leaf=5,n_jobs=-1,random_state=42)
+    params.update(overrride)
+    
+    return Pipeline([("model", RandomForestRegressor(**params))])
 
 
 def load_splits():
