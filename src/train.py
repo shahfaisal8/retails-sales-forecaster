@@ -6,8 +6,8 @@ from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
-from data_prep import PROCESSED_PATH, time_split
-from features import add_features
+from src.data_prep import PROCESSED_PATH, time_split
+from src.features import add_features
 
 NUMERIC = ["lag_1", "lag_7", "lag_14", "lag_28", "ma_7", "ma_14", "is_weekend"]
 CATEGORICAL = ["dow", "month", "store_num", "product_num"]
