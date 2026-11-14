@@ -50,9 +50,9 @@ def test_flat_demand_forecast_stays_near_the_mean(model):
 def test_weekly_pattern_is_followed(model):
     pattern = np.array([40, 42, 45, 50, 60, 75, 80], dtype=float)  # Monday..Sunday
     dates = pd.date_range("2017-01-02", periods=140, freq="D")  # starts on a Monday
-    s = pd.DataFrame({"date": dates, "sales_qty": pattern[dates.dayofweek]})
+    s = pd.DataFrame({"date": dates, "sales_qty": pattern[dates.day_of_week]})
     out, _ = forecast_series(model, s, 1, 1, horizon=14)
-    expected = pattern[out["date"].dt.dayofweek]
+    expected = pattern[out["date"].dt.day_of_week]
     assert np.corrcoef(out["forecast"], expected)[0, 1] > 0.8
 
 

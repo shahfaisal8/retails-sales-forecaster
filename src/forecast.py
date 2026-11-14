@@ -14,7 +14,7 @@ def _lag(vals, k):
 
 def feature_row(vals, day, store_num, product_num):
     """Features for predicting `day`, given past sales `vals` (oldest first)."""
-    dow = day.dayofweek
+    dow = day.day_of_week
     return {
         "lag_1": _lag(vals, 1),
         "lag_7": _lag(vals, 7),

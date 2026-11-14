@@ -15,7 +15,7 @@ def add_features(df):
     for w in WINDOWS:
         df[f"ma_{w}"] = sales.transform(lambda s: s.shift(1).rolling(w).mean())
 
-    df["dow"] = df["date"].dt.dayofweek
+    df["dow"] = df["date"].dt.day_of_week
     df["is_weekend"] = (df["dow"] >= 5).astype(int)
     df["month"] = df["date"].dt.month
 
