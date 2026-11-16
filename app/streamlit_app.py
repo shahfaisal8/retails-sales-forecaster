@@ -23,6 +23,8 @@ META_KEY = "models/retail_forecaster/v1/metadata.json"
 MODEL_LOCAL = Path("models/retail_forecaster_v1.joblib")
 META_LOCAL = Path("models/retail_forecaster_v1.json")
 REQUIRED = ["date", "product_id", "store_id", "sales_qty"]
+BAND_LOCAL = Path("models/band_v1.json")
+BAND_KEY = "models/retail_forecaster/v1/band.json"
 
 
 def get_logger():
@@ -51,8 +53,11 @@ def load_model():
         s3_client().download_file(BUCKET, MODEL_KEY, str(MODEL_LOCAL))
         s3_client().download_file(BUCKET, META_KEY, str(META_LOCAL))
         log.info("Model downloaded from S3")
-    return joblib.load(MODEL_LOCAL), json.loads(META_LOCAL.read_text())
-
+    if not BAND_LOCAL.exists():
+        s3_client().download_file(BUCKET, BAND_KEY, str(BAND_LOCAL))
+        log.info("Band calibration downloaded from S3")
+    band = json.loads(BAND_LOCAL.read_text())["sqrt"]
+    return joblib.load(MODEL_LOCAL), json.loads(META_LOCAL.read_text()), band
 
 @st.cache_data(show_spinner="Fetching data from S3...")
 def fetch_from_s3():
@@ -84,7 +89,7 @@ st.set_page_config(page_title="Cloud Retail Sales Forecaster", layout="wide")
 st.title("Cloud Retail Sales Forecaster")
 
 try:
-    model, meta = load_model()
+    model, meta, band = load_model()
 except Exception:
     log.exception("Could not load model")
     st.error("The model could not be loaded. Check the logs and your AWS access.")
@@ -122,7 +127,7 @@ with tab_forecast:
 
     try:
         started = time.perf_counter()
-        fc, _ = forecast_series(model, filled, id_number(store), id_number(product), horizon)
+        fc, _ = forecast_series(model, filled, id_number(store), id_number(product), horizon, band)
         elapsed_ms = (time.perf_counter() - started) * 1000
         log.info("Forecast: store=%s product=%s horizon=%d days_history=%d ms=%.0f",
                  store, product, horizon, len(filled), elapsed_ms)
@@ -135,13 +140,13 @@ with tab_forecast:
     recent = filled.tail(120)
     ax.plot(recent["date"], recent["sales_qty"], label="History")
     ax.plot(fc["date"], fc["forecast"], label="Forecast")
-    ax.fill_between(fc["date"], fc["lower"], fc["upper"], alpha=0.25, label="Model spread (not a prediction interval)")
+    ax.fill_between(fc["date"], fc["lower"], fc["upper"], alpha=0.25, label="80% band (calibrated on past errors)")
     ax.set(title=f"{store} / {product}: history and {horizon}-day forecast", ylabel="Units")
     ax.legend()
     fig.autofmt_xdate()
     st.pyplot(fig)
-    st.caption(f"Computed in {elapsed_ms:.0f} ms. The band shows how much the model's trees disagree; "
-               "it understates real uncertainty, especially further out.")
+    st.caption(f"Computed in {elapsed_ms:.0f} ms. The band is sized from real past 30-day forecast errors "
+               "(about 80% of real days fell inside it in our backtest). It is a guide, not a guarantee.")
 
     st.download_button("Download forecast CSV", fc.to_csv(index=False), f"forecast_{store}_{product}.csv")
 

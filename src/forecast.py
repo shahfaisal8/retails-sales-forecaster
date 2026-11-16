@@ -30,7 +30,28 @@ def feature_row(vals, day, store_num, product_num):
     }
 
 
-def forecast_series(pipe, history, store_num, product_num, horizon=30, band=(10, 90)):
+BUCKET_EDGES = [8, 15, 22]  # horizon groups: days 1-7, 8-14, 15-21, 22-30
+
+
+def band_limits(forecast, h, band):
+    """Lower and upper limits around the forecast for horizon day h."""
+    if band is None:
+        return np.nan, np.nan
+    i = int(np.digitize(h, BUCKET_EDGES))
+    spread = np.sqrt(max(forecast, 1.0))
+    lower = max(forecast + band["q10"][i] * spread, 0.0)
+    upper = forecast + band["q90"][i] * spread
+    return lower, upper
+
+def test_band_surrounds_forecast_and_never_goes_negative(model):
+    band = {"q10": [-2.0] * 4, "q90": [2.5] * 4}
+    out, _ = forecast_series(model, make_series([5.0] * 60), 1, 1, horizon=30, band=band)
+    assert (out["lower"] <= out["forecast"]).all()
+    assert (out["forecast"] <= out["upper"]).all()
+    assert (out["lower"] >= 0).all()
+
+
+def forecast_series(pipe, history, store_num, product_num, horizon=30, band=None):
     """Recursive forecast for ONE series. `history` needs columns date, sales_qty
     with no missing days (run fill_missing_dates first). Returns (forecast_df, warning)."""
     if history is None or len(history) == 0:
@@ -39,20 +60,14 @@ def forecast_series(pipe, history, store_num, product_num, horizon=30, band=(10,
     vals = history["sales_qty"].astype(float).tolist()
     warning = SHORT_HISTORY_MESSAGE if len(vals) < SHORT_HISTORY_DAYS else None
 
-    forest = pipe.named_steps["model"]
     day = history["date"].max()
     rows = []
-    for _ in range(horizon):
+    for h in range(1, horizon + 1):
         day = day + pd.Timedelta(days=1)
-        x = pd.DataFrame([feature_row(vals, day, store_num, product_num)])[FEATURES].to_numpy()
-        tree_preds = np.array([tree.predict(x)[0] for tree in forest.estimators_])
-        point = max(float(tree_preds.mean()), 0.0)
-        rows.append({
-            "date": day,
-            "forecast": point,
-            "lower": max(float(np.percentile(tree_preds, band[0])), 0.0),
-            "upper": float(np.percentile(tree_preds, band[1])),
-        })
+        x = pd.DataFrame([feature_row(vals, day, store_num, product_num)])[FEATURES]
+        point = max(float(pipe.predict(x)[0]), 0.0)
+        lower, upper = band_limits(point, h, band)
+        rows.append({"date": day, "forecast": point, "lower": lower, "upper": upper})
         vals.append(point)  # feed our own prediction back in as tomorrow's "history"
     return pd.DataFrame(rows), warning
 

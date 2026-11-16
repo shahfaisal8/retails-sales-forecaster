@@ -40,8 +40,6 @@ def main():
                     "origin": str(origin.date()),
                     "actual": actual["sales_qty"].iloc[h - 1],
                     "forecast": fc["forecast"].iloc[h - 1],
-                    "lower": fc["lower"].iloc[h - 1],
-                    "upper": fc["upper"].iloc[h - 1],
                     "naive": last_week[(h - 1) % 7],
                 })
         print("done", store, product)
@@ -57,8 +55,7 @@ def main():
     print("Overall 30-day WAPE %: model", round(res["err_model"].sum() / res["actual"].sum() * 100, 2),
           "| seasonal naive", round(res["err_naive"].sum() / res["actual"].sum() * 100, 2))
 
-    inside = ((res["actual"] >= res["lower"]) & (res["actual"] <= res["upper"])).mean()
-    print(f"\nShare of real days inside the current 'tree spread' band: {inside:.0%} (claimed 80%)")
+    
 
         # Two candidate bands, built from real errors
     res["rel"] = (res["actual"] - res["forecast"]) / res["forecast"].clip(lower=1)
@@ -72,6 +69,8 @@ def main():
             band["q90"].append(round(float(part.quantile(0.90)), 4))
         return band
 
+    
+
     def inside(frame, band, kind):
         idx = np.digitize(frame["h"], [8, 15, 22])
         q10, q90 = np.array(band["q10"])[idx], np.array(band["q90"])[idx]
@@ -82,6 +81,8 @@ def main():
             lower, upper = f * (1 + q10), f * (1 + q90)
         return (frame["actual"] >= lower) & (frame["actual"] <= upper)
 
+    
+
     # Calibrate on the first two start dates, check on the last one
     fit = res[res["origin"] != ORIGINS[-1]]
     check = res[res["origin"] == ORIGINS[-1]].copy()
@@ -90,7 +91,7 @@ def main():
         hit = inside(check, make_band(fit, col), kind)
         print(f"\nBand '{kind}': coverage on the held-out start date {hit.mean():.0%} (target 80%)")
         print(hit.groupby(check["volume"], observed=True).mean().round(2).to_string())
-
+    
     # Save both, recalibrated on all start dates
     final = {"relative": make_band(res, "rel"), "sqrt": make_band(res, "z")}
     Path("models/band_v1.json").write_text(json.dumps(final, indent=2))
