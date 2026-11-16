@@ -5,7 +5,7 @@ from pathlib import Path
 import joblib
 import pandas as pd
 
-from train import FEATURES, TARGET, build_forest, build_linear, load_splits, report
+from src.train import FEATURES, TARGET, build_forest, build_linear, load_splits, report
 
 MODEL_DIR = Path("models")
 DEPLOY_PARAMS = dict(n_estimators=100, max_depth=12, min_samples_leaf=20, max_samples=0.5)
