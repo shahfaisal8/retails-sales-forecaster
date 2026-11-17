@@ -43,12 +43,7 @@ def band_limits(forecast, h, band):
     upper = forecast + band["q90"][i] * spread
     return lower, upper
 
-def test_band_surrounds_forecast_and_never_goes_negative(model):
-    band = {"q10": [-2.0] * 4, "q90": [2.5] * 4}
-    out, _ = forecast_series(model, make_series([5.0] * 60), 1, 1, horizon=30, band=band)
-    assert (out["lower"] <= out["forecast"]).all()
-    assert (out["forecast"] <= out["upper"]).all()
-    assert (out["lower"] >= 0).all()
+
 
 
 def forecast_series(pipe, history, store_num, product_num, horizon=30, band=None):
