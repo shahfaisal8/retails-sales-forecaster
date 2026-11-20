@@ -64,7 +64,13 @@ def test_missing_dates_are_filled():
     assert len(filled) == 10
     assert filled["sales_qty"].isna().sum() == 0
     assert (filled["sales_qty"] == 0).sum() == 2
-
+    
+def test_band_surrounds_forecast_and_never_goes_negative(model):
+    band = {"q10": [-2.0] * 4, "q90": [2.5] * 4}
+    out, _ = forecast_series(model, make_series([5.0] * 60), 1, 1, horizon=30, band=band)
+    assert (out["lower"] <= out["forecast"]).all()
+    assert (out["forecast"] <= out["upper"]).all()
+    assert (out["lower"] >= 0).all()
 
 def test_empty_history_raises_clear_error(model):
     with pytest.raises(ValueError):

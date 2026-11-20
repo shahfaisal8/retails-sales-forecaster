@@ -227,3 +227,6 @@ data/processed/*
 !data/**/.gitkeep
 venv/
 .venv/
+
+build/
+*.zip
