@@ -230,3 +230,6 @@ venv/
 
 build/
 *.zip
+
+*accessKeys*.csv
+*credentials*
