@@ -1,26 +1,41 @@
-# Project Progress — Retail Sales Forecaster
+# Progress notes: Cloud Retail Sales Forecaster (TCS ION Industry Project)
 
-## Done
-**Data & Features:** Cleaned the Kaggle store-item dataset, filled missing dates, split chronologically (train/val/test), and built lag (`1, 7, 14, 28`), rolling mean (`7, 14`), weekend, and calendar/ID features.
-**Models & Evaluation:** Benchmarked baselines, Linear Regression, and Random Forest across validation, a 3-fold rolling-origin backtest, and the held-out 2017 test set (6.71 MAE / 10.64% WAPE). Rejected the `dayofyear` feature experiment (~0.6% gain, below the 2% threshold) and uploaded `retail_forecaster_v1` (~14.6 MB) + metadata to S3.
-**Forecasting Engine & Tests:** Built `src/forecast.py` (30-day recursive forecasting + daily batch inference) and verified 6 `pytest` unit tests covering training-serving skew, short history, flat demand, weekly patterns, missing dates, and empty-history errors.
-**Calibrated Band:** Upgraded the recursive prediction interval using a square-root error scaling approach.
-**Streamlit App (Local):** Built and tested `app/streamlit_app.py` locally (CSV upload & S3 fetch, recursive forecast chart, test metrics, batch-to-S3 export, and `logs/app.log` logging).
-**Lambda Deployed & Tested:** Packaged and deployed the daily batch forecasting Lambda function (`retail-forecaster-daily`) and verified it against S3.
+## Status (21 Nov 2026)
+Core system built and deployed. Left: smoke tests and screenshots, README,
+short report, 2-3 min demo video, fixed URL (Elastic IP), final clean-up.
 
-## Key Decisions**Production Model:** Random Forest (`n_estimators=100`, `max_depth=12`, `min_samples_leaf=20`, `max_samples=0.5`) chosen for top accuracy and compact ~14.6 MB artifact size.
-**Uncertainty Band:** Square-root band scaling to account for uncertainty growth across the 30-day recursive horizon *(confirm exact multiplier/calibration details from your recent chat if needed)*.
-**Cloud & Runtime Setup:** AWS Sydney region (`ap-southeast-2`), Lambda built via Python 3.14 zip package targeting `x86_64` architecture.
+## What exists
+- Data: Kaggle Store Item Demand Forecasting, 500 store-product series (2013-2017),
+  split by time 70/15/15 (src/data_prep.py)
+- Features: lags 1/7/14/28, moving averages 7/14, calendar features (src/features.py)
+- Test results (MAE / WAPE %): seasonal naive 9.21 / 14.61, linear 7.00 / 11.10,
+  random forest 6.71 / 10.64
+- Deployed model v1: random forest (100 trees, depth 12, leaf 20), 14.6 MB
+- 3-fold backtest, tuning, rejected day-of-year experiment: results in docs/
+- 30-day recursive forecast: MAE 6.98 vs 9.71 seasonal naive; calibrated 80% band
+  (square-root scaled) from past errors
+- 7 pytest tests pass: py -m pytest -q
+- Streamlit app (app/streamlit_app.py) on EC2, systemd service "forecaster", port 8501
+- Lambda retail-forecaster-daily (Python 3.14, x86_64) + EventBridge
+  cron(30 20 * * ? *) = 02:00 IST, writes forecasts/forecast_YYYYMMDD.csv
+
+## AWS names (region ap-southeast-2)
+Bucket faisal-salesforecaster-bucket9056, roles forecaster-lambda-role and
+forecaster-ec2-role, instance retail-forecaster-app, security group forecaster-app-sg.
+
+## How to run
+- Always from the repo root, with -m: py -m src.train, py -m pytest -q
+- App locally: py -m streamlit run app/streamlit_app.py
+- Lambda package: py scripts\build_lambda_zip.py, then upload to S3 and update the function
+- Deploy app changes: on the server, git pull && sudo systemctl restart forecaster
+
+## After stopping the instance
+Start it in the EC2 console; the app starts by itself. Public IP changes unless an
+Elastic IP is attached.
+
+## Never commit
+AWS access key CSV files, .env, .pem files. (A key was committed once and rotated.)
 
 ## Next
-- Verify EventBridge schedule trigger for the daily Lambda run
-- Run failure smoke tests (e.g., bad/missing inputs, permissions/error paths)
-- Deploy the Streamlit app on EC2
-- Finalize `README.md`
-- Write the project report (including architecture, trade-offs, and AWS cost breakdown)
-- Record the demo video
-
-## AWS Resource Names
-- **S3 Bucket:** `faisal-salesforecaster-bucket9056`
-- **Lambda Function:** `retail-forecaster-daily`
-- **IAM Role:** `forecaster-lambda-role`
+Smoke tests with screenshots, README, report (data, model, metrics, system design,
+costs), demo video, Elastic IP, clean-up checklist at the very end
